@@ -439,6 +439,12 @@ class DataFrame(BinaryOps, BalooCommon):
     def __contains__(self, item):
         return item in self._data
 
+    def generate(self):
+        generated_index = self.index.generate()
+        return generated_index
+        #generated_data = OrderedDict((column.name, column.generate()) for column in self._iter())
+        #generated_index + generated_data
+
     def evaluate(self, verbose=False, decode=True, passes=None, num_threads=1, apply_experimental=True):
         """Evaluates by creating a DataFrame containing evaluated data and index.
 

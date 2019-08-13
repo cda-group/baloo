@@ -10,6 +10,7 @@ from .types import *
 class WeldObjectEncoder(object):
     """An abstract class that must be overridden by libraries. This class
     is used to marshall objects from Python types to Weld types."""
+
     def encode(self, obj):
         """Encodes an object. All objects encode-able by this encoder should return
         a valid Weld type using py_to_weld_type."""
@@ -94,8 +95,11 @@ class WeldObject(object):
         Otherwise, a new name is assigned and returned.
         TODO tys for inputs.
         """
+        from baloo.weld import LazyResult
         if isinstance(value, WeldObject):
             self.context.update(value.context)
+        elif isinstance(value, LazyResult):
+            self.context.update(value.weld_expr.context)
         else:
             # Ensure that the same inputs always have same names
             value_str = str(value)
@@ -113,19 +117,16 @@ class WeldObject(object):
         queue = [self]
         visited = set()
         let_statements = []
-        is_first = True
         while len(queue) > 0:
             cur_obj = queue.pop()
             cur_obj_id = cur_obj.obj_id
-            if cur_obj_id in visited:
-                continue
-            if not is_first:
+            if cur_obj_id not in visited:
                 let_statements.insert(0, "let %s = (%s);" % (cur_obj_id, cur_obj.weld_code))
-            is_first = False
-            for key in sorted(cur_obj.dependencies.keys()):
-                queue.append(cur_obj.dependencies[key])
-            visited.add(cur_obj_id)
+                for key in sorted(cur_obj.dependencies.keys()):
+                    queue.append(cur_obj.dependencies[key])
+                visited.add(cur_obj_id)
         let_statements.sort()  # To ensure that let statements are in the right order in the final generated program
+        let_statements.insert(len(let_statements), self.obj_id)
 
         return "\n".join(let_statements)
 
@@ -138,6 +139,9 @@ class WeldObject(object):
         text = header + " " + self.get_let_statements() + "\n" + self.weld_code
 
         return text
+
+    def generate(self):
+        return self.get_let_statements()
 
     def evaluate(self, restype, verbose=True, decode=True, passes=None,
                  num_threads=1, apply_experimental_transforms=False):

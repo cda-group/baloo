@@ -143,6 +143,8 @@ class NumPyEncoder(WeldObjectEncoder):
             base = to_weld_vec(base, obj.ndim)
 
             return base
+        elif isinstance(obj, np.dtype):
+            return numpy_to_weld_type(obj)
         elif isinstance(obj, str):
             return WeldVec(WeldChar())
         else:

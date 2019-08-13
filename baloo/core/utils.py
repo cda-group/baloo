@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..weld import WeldObject, weld_count, WeldBit, WeldLong, LazyResult, supported_dtype_chars
+from ..weld import WeldObject, weld_count, WeldBit, WeldLong, LazyResult, supported_dtype_chars, LazyArrayResult
 
 
 def check_type(data, expected_types):
@@ -15,7 +15,7 @@ def check_dtype(data):
     if data == bool:
         return np.bool_
 
-    if data is not None and not (isinstance(data, np.dtype) or data.__module__ == np.__name__):
+    if data is not None and not (isinstance(data, np.dtype)):
         raise TypeError('Expected a valid NumPy dtype, received: {}'.format(str(data)))
 
     return data
@@ -57,6 +57,9 @@ def infer_dtype(data, arg_dtype):
         elif isinstance(data, WeldObject):
             # if WeldObject data then arg_dtype must have been passed as argument
             raise ValueError('Using WeldObject as data requires the dtype as argument')
+        elif isinstance(data, LazyArrayResult):
+            from arc_beam.pipeline import weld_to_numpy_type
+            return weld_to_numpy_type(data.weld_type)
         else:
             raise ValueError('Unsupported data type: {}'.format(str(type(data))))
 

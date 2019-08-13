@@ -1,7 +1,7 @@
 import numpy as np
 
 from .convertors import default_missing_data_literal
-from .lazy_result import LazyArrayResult, LazyStructOfVecResult
+from .lazy_result import LazyArrayResult, LazyStructOfVecResult, LazyScalarResult
 from .pyweld import WeldVec, WeldChar, WeldLong, WeldObject
 from .weld_utils import get_weld_obj_id, create_weld_object, to_weld_literal, create_empty_weld_object, \
     weld_arrays_to_vec_of_struct, weld_vec_of_struct_to_struct_of_vec, Cache, weld_select_from_struct, \
@@ -436,7 +436,11 @@ def weld_element_wise_op(array, weld_type, scalar, operation):
     """
     obj_id, weld_obj = create_weld_object(array)
 
-    scalar = to_weld_literal(scalar, weld_type)
+    if isinstance(scalar, LazyScalarResult):
+        weld_obj.dependencies[scalar.weld_expr.obj_id] = scalar.weld_expr
+        scalar = scalar.weld_expr.obj_id
+    else:
+        scalar = to_weld_literal(scalar, weld_type)
 
     if operation == 'pow':
         action = 'pow(e, {scalar})'.format(scalar=scalar)

@@ -28,9 +28,13 @@ def get_weld_obj_id(weld_obj, data):
 
     """
     obj_id = weld_obj.update(data)
+    from baloo.weld import LazyResult
     if isinstance(data, WeldObject):
         obj_id = data.obj_id
         weld_obj.dependencies[obj_id] = data
+    elif isinstance(data, LazyResult):
+        obj_id = data.weld_expr.obj_id
+        weld_obj.dependencies[obj_id] = data.weld_expr
 
     return obj_id
 

@@ -1,10 +1,10 @@
 from .cache import Cache
 from .convertors import numpy_to_weld_type
 from .convertors.utils import to_weld_vec
-from .pyweld.types import WeldStruct, WeldVec, WeldLong, WeldDouble
+from .pyweld.types import WeldStruct, WeldVec, WeldLong, WeldDouble, WeldBit
 from .pyweld.weldobject import WeldObject
 from .weld_aggs import weld_aggregate, weld_count
-from .weld_utils import weld_cast_array
+from .weld_utils import weld_cast_array, create_weld_object
 
 
 class LazyResult(object):
@@ -49,6 +49,10 @@ class LazyResult(object):
 
     def is_raw(self):
         return not isinstance(self.weld_expr, WeldObject)
+
+    def generate(self):
+        return self.weld_expr.generate()
+        # to_weld_vec(self.weld_type, self.ndim)
 
     def evaluate(self, verbose=False, decode=True, passes=None, num_threads=1,
                  apply_experimental_transforms=True):
@@ -165,6 +169,76 @@ class LazyArrayResult(LazyResult):
 class LazyScalarResult(LazyResult):
     def __init__(self, weld_expr, weld_type):
         super(LazyScalarResult, self).__init__(weld_expr, weld_type, 0)
+
+    def op(self, op, other=None, return_type=None):
+        if return_type is None:
+            return_type = self.weld_type
+        result = LazyScalarResult(WeldObject(None, None), return_type)
+        if other is None:
+            result.weld_expr.weld_code = "{} {}".format(op, self.weld_expr.obj_id)
+            result.weld_expr.dependencies[self.weld_expr.obj_id] = self.weld_expr
+        else:
+            result.weld_expr.dependencies[self.weld_expr.obj_id] = self.weld_expr
+            if hasattr(other, 'weld_expr'):
+                result.weld_expr.weld_code = "{} {} {}".format(self.weld_expr.obj_id, op, other.weld_expr.obj_id)
+                result.weld_expr.dependencies[other.weld_expr.obj_id] = other.weld_expr
+            else:
+                result.weld_expr.weld_code = "{} {} {}".format(self.weld_expr.obj_id, op, other)
+        return result
+
+    def __add__(self, other):
+        return self.op('+', other)
+
+    def __sub__(self, other):
+        return self.op('-', other)
+
+    def __mul__(self, other):
+        return self.op('*', other)
+
+    def __truediv__(self, other):
+        return self.op('/', other)
+
+    def __eq__(self, other):
+        return self.op('==', other, WeldBit())
+
+    def __ne__(self, other):
+        return self.op('!=', other, WeldBit())
+
+    def __or__(self, other):
+        return self.op('||', other, WeldBit())
+
+    def __and__(self, other):
+        return self.op('&&', other, WeldBit())
+
+    def __pow__(self, power, modulo=None):
+        ...
+
+    def __gt__(self, other):
+        return self.op('>', other, WeldBit())
+
+    def __ge__(self, other):
+        return self.op('<=', other, WeldBit())
+
+    def __lt__(self, other):
+        return self.op('<', other, WeldBit())
+
+    def __le__(self, other):
+        return self.op('<=', other, WeldBit())
+
+    def __mod__(self, other):
+        self.op('%', other)
+
+    def __xor__(self, other):
+        self.op('^', other)
+
+    def __cmp__(self, other):
+        ...
+
+    def __abs__(self):
+        ...
+
+    def __neg__(self, other):
+        return self.op('-')
 
 
 class LazyLongResult(LazyScalarResult):

@@ -190,6 +190,10 @@ class Series(LazyArrayResult, BinaryOps, BitOps, BalooCommon):
             return _series_compare(self, other, comparison)
         elif is_scalar(other):
             return _series_compare(self, other, comparison)
+        elif isinstance(other, LazyScalarResult):
+            s = _series_compare(self, other.weld_expr.obj_id, comparison)
+            s.weld_expr.dependencies[other.weld_expr.obj_id] = other.weld_expr
+            return s
         else:
             raise TypeError('Can currently only compare with scalars')
 
@@ -203,6 +207,8 @@ class Series(LazyArrayResult, BinaryOps, BitOps, BalooCommon):
     def _element_wise_operation(self, other, operation):
         if isinstance(other, LazyArrayResult):
             return _series_array_op(self, other, operation)
+        elif isinstance(other, LazyScalarResult):
+            return _series_element_wise_op(self, other, operation)
         elif is_scalar(other):
             return _series_element_wise_op(self, other, operation)
         else:
@@ -588,7 +594,7 @@ def _process_input(data, dtype):
     if data is None:
         return np.empty(0), np.dtype(np.float64)
     else:
-        check_type(data, (np.ndarray, WeldObject, list))
+        check_type(data, (np.ndarray, WeldObject, LazyArrayResult, list))
         check_dtype(dtype)
 
         if isinstance(data, list):
