@@ -58,7 +58,7 @@ def infer_dtype(data, arg_dtype):
             # if WeldObject data then arg_dtype must have been passed as argument
             raise ValueError('Using WeldObject as data requires the dtype as argument')
         elif isinstance(data, LazyArrayResult):
-            from arc_beam.pipeline import weld_to_numpy_type
+            from baloo.weld import weld_to_numpy_type
             return weld_to_numpy_type(data.weld_type)
         else:
             raise ValueError('Unsupported data type: {}'.format(str(type(data))))
