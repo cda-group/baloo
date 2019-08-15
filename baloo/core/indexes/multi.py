@@ -117,6 +117,10 @@ class MultiIndex(IndexCommon, BalooCommon):
 
         return tabulate(str_data, headers='keys')
 
+    def generate(self):
+        generated_data = [v.generate() for v in self.values]
+        str(generated_data)
+
     def evaluate(self, verbose=False, decode=True, passes=None, num_threads=1, apply_experimental=True):
         """Evaluates by creating a MultiIndex containing evaluated data and index.
 

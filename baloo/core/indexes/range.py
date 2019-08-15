@@ -78,6 +78,14 @@ class RangeIndex(Index):
     def empty(self):
         return self.start == 0 and self.stop == 0
 
+    def generate(self):
+        if self.start == 0 and self.stop == 0:
+            generated_data = np.empty(0, dtype=np.int64)
+        else:
+            generated_data = super(Index, self).generate()
+
+        generated_data
+
     def evaluate(self, verbose=False, decode=True, passes=None, num_threads=1, apply_experimental=True):
         """Evaluates by creating an Index containing evaluated data.
 
