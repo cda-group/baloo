@@ -297,8 +297,15 @@ class LazyStructResult(LazyResult):
         super(LazyStructResult, self).__init__(weld_expr, WeldStruct(weld_types), 0)
 
     def __getitem__(self, key):
-        lazy = lazify(self.weld_type.field_types[key])
-        lazy.weld_expr.weld_code = "{}.${}".format(self.weld_expr.obj_id, key)
+        if isinstance(key, slice):
+            lazy = lazify(WeldStruct(self.weld_type.field_types[key]))
+            fields = ','.join(
+                ["{}.${}".format(self.weld_expr.obj_id, k) for k in
+                 range(key.start, key.stop, 1 if key.step is None else key.step)])
+            lazy.weld_expr.weld_code = '{{ {} }}'.format(fields)
+        else:
+            lazy = lazify(self.weld_type.field_types[key])
+            lazy.weld_expr.weld_code = "{}.${}".format(self.weld_expr.obj_id, key)
         lazy.weld_expr.dependencies[self.weld_expr.obj_id] = self.weld_expr
         return lazy
 
@@ -312,8 +319,9 @@ class LazyStructOfVecResult(LazyStructResult):
 
 
 # Creates a lazy value out of a Weld type
-def lazify(weld_type):
+def lazify(weld_type, weld_code=""):
     weld_expr = WeldObject(None, None)
+    weld_expr.weld_code = weld_code
     if isinstance(weld_type, (WeldLong, WeldDouble, WeldBit)):
         return LazyScalarResult(weld_expr, weld_type)
     elif isinstance(weld_type, WeldVec):
@@ -356,24 +364,27 @@ def python_type_to_weld_type(python_type):
 
 # Translates a Python expr to a Weld expr, e.g. (1,2) to WeldStruct(WeldInt())
 def python_expr_to_weld_expr(python_expr):
-    weld_expr = WeldObject(None, None)
     if isinstance(python_expr, LazyResult):
         return python_expr
     elif isinstance(python_expr, tuple):
         lazy_fields = [field if isinstance(field, LazyResult) else python_expr_to_weld_expr(field) for field in
                        python_expr]
+        weld_expr = WeldObject(None, None)
         for lazy_field in lazy_fields:
             weld_expr.dependencies[lazy_field.weld_expr.obj_id] = lazy_field.weld_expr
         lazy_field_types = [lazy_field.weld_type for lazy_field in lazy_fields]
         weld_expr.weld_code = '{{ {} }}'.format(','.join([lazy_field.weld_expr.obj_id for lazy_field in lazy_fields]))
         return LazyStructResult(weld_expr, lazy_field_types)
     elif isinstance(python_expr, int):
+        weld_expr = WeldObject(None, None)
         weld_expr.weld_code = str(python_expr) + "L"
         return LazyScalarResult(weld_expr, WeldLong())
     elif isinstance(python_expr, float):
+        weld_expr = WeldObject(None, None)
         weld_expr.weld_code = str(python_expr)
         return LazyScalarResult(weld_expr, WeldFloat())
     elif isinstance(python_expr, bool):
+        weld_expr = WeldObject(None, None)
         weld_expr.weld_code = "true" if python_expr else "false"
         return LazyScalarResult(weld_expr, WeldBit())
     else:
