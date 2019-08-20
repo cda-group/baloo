@@ -280,6 +280,18 @@ class LazyScalarResult(LazyResult):
     def __rmod__(self, other):
         self.op('%', other, right=True)
 
+    def toInt(self):
+        result = LazyScalarResult(WeldObject(None, None), WeldLong())
+        result.weld_expr.weld_code = "i64({})".format(self.weld_expr.obj_id)
+        result.weld_expr.dependencies[self.weld_expr.obj_id] = self.weld_expr
+        return result
+
+    def toFloat(self):
+        result = LazyScalarResult(WeldObject(None, None), WeldDouble())
+        result.weld_expr.weld_code = "f64({})".format(self.weld_expr.obj_id)
+        result.weld_expr.dependencies[self.weld_expr.obj_id] = self.weld_expr
+        return result
+
 
 class LazyLongResult(LazyScalarResult):
     def __init__(self, weld_expr):
