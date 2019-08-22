@@ -219,10 +219,11 @@ class LazyScalarResult(LazyResult):
                     rhs = "{}({})".format(self.weld_type, other.weld_expr.obj_id)
             else:
                 weld_type = python_expr_to_weld_type(other)
+                lit = "{}L".format(other) if isinstance(weld_type, WeldLong) else other
                 if self.weld_type == weld_type:
-                    rhs = other
+                    rhs = lit
                 else:
-                    rhs = "{}({})".format(self.weld_type, other)
+                    rhs = "{}({})".format(self.weld_type, lit)
             if right:
                 result.weld_expr.weld_code = "{} {} {}".format(rhs, op, lhs)
             else:
@@ -437,7 +438,7 @@ def python_expr_to_weld_type(python_expr):
     if isinstance(python_expr, int):
         return WeldLong()
     elif isinstance(python_expr, float):
-        return WeldInt()
+        return WeldFloat()
     elif isinstance(python_expr, bool):
         return WeldBit()
     elif isinstance(python_expr, list):
