@@ -7,7 +7,7 @@ from .convertors import numpy_to_weld_type
 from .convertors.utils import to_weld_vec
 from .pyweld.types import WeldStruct, WeldVec, WeldLong, WeldDouble, WeldBit, WeldInt, WeldFloat, WeldChar
 from .pyweld.weldobject import WeldObject
-from .weld_aggs import weld_aggregate, weld_count
+from .weld_aggs import weld_aggregate, weld_aggregate_by, weld_count
 from .weld_utils import weld_cast_array, create_weld_object
 
 
@@ -121,6 +121,13 @@ class LazyArrayResult(LazyResult):
                                                operation),
                                 self.weld_type)
 
+    def _aggregate_by(self, operation, extractor):
+        return LazyScalarResult(weld_aggregate_by(self.weld_expr,
+                                                  self.weld_type,
+                                                  operation,
+                                                  extractor),
+                                self.weld_type)
+
     def min(self):
         """Returns the minimum value.
 
@@ -142,6 +149,28 @@ class LazyArrayResult(LazyResult):
 
         """
         return self._aggregate('max')
+
+    def min_by(self, extractor):
+        """Returns the minimum value using extractor.
+
+        Returns
+        -------
+        LazyScalarResult
+            The minimum value.
+
+        """
+        return self._aggregate_by('min', extractor)
+
+    def max_by(self, extractor):
+        """Returns the maximum value.
+
+        Returns
+        -------
+        LazyScalarResult
+            The maximum value.
+
+        """
+        return self._aggregate_by('max', extractor)
 
     def _lazy_len(self):
         return LazyLongResult(weld_count(self.weld_expr))
@@ -190,10 +219,11 @@ class LazyScalarResult(LazyResult):
                     rhs = "{}({})".format(self.weld_type, other.weld_expr.obj_id)
             else:
                 weld_type = python_expr_to_weld_type(other)
+                lit = "{}L".format(other) if isinstance(weld_type, WeldLong) else other
                 if self.weld_type == weld_type:
-                    rhs = other
+                    rhs = lit
                 else:
-                    rhs = "{}({})".format(self.weld_type, other)
+                    rhs = "{}({})".format(self.weld_type, lit)
             if right:
                 result.weld_expr.weld_code = "{} {} {}".format(rhs, op, lhs)
             else:
@@ -280,13 +310,13 @@ class LazyScalarResult(LazyResult):
     def __rmod__(self, other):
         self.op('%', other, right=True)
 
-    def toInt(self):
+    def asInt(self):
         result = LazyScalarResult(WeldObject(None, None), WeldLong())
         result.weld_expr.weld_code = "i64({})".format(self.weld_expr.obj_id)
         result.weld_expr.dependencies[self.weld_expr.obj_id] = self.weld_expr
         return result
 
-    def toFloat(self):
+    def asFloat(self):
         result = LazyScalarResult(WeldObject(None, None), WeldDouble())
         result.weld_expr.weld_code = "f64({})".format(self.weld_expr.obj_id)
         result.weld_expr.dependencies[self.weld_expr.obj_id] = self.weld_expr
@@ -408,7 +438,7 @@ def python_expr_to_weld_type(python_expr):
     if isinstance(python_expr, int):
         return WeldLong()
     elif isinstance(python_expr, float):
-        return WeldInt()
+        return WeldFloat()
     elif isinstance(python_expr, bool):
         return WeldBit()
     elif isinstance(python_expr, list):

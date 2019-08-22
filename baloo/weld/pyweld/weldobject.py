@@ -24,6 +24,7 @@ class WeldObjectEncoder(object):
 class WeldObjectDecoder(object):
     """An abstract class that must be overridden by libraries. This class
     is used to marshall objects from Weld types to Python types."""
+
     def decode(self, obj, restype):
         """Decodes obj, assuming object is of type `restype`. obj's Python
         type is ctypes.POINTER(restype.ctype_class)."""
@@ -59,7 +60,7 @@ class WeldObject(object):
     _obj_id = 100
     _registry = {}
 
-    def __init__(self, encoder, decoder):
+    def __init__(self, encoder=None, decoder=None, code=""):
         self.encoder = encoder
         self.decoder = decoder
 

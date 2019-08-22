@@ -38,6 +38,14 @@ _weld_aggregate_code = """result(
     )
 )"""
 
+_weld_aggregate_by_code = """result(
+    for(
+        {array},
+        merger[{type}, {operation}],
+        |b: merger[{type}, {operation}], i: i64, e: {type}| 
+            merge(b, {extractor})
+    )
+)"""
 
 _weld_aggregate_code_f64 = """result(
     for(
@@ -74,6 +82,21 @@ def weld_aggregate(array, weld_type, operation):
     weld_obj.weld_code = weld_template.format(array=obj_id,
                                               type=weld_type,
                                               operation=operation)
+
+    return weld_obj
+
+
+def weld_aggregate_by(array, weld_type, operation, extractor):
+    obj_id, weld_obj = create_weld_object(array)
+    from baloo.weld import lazify
+    lazy_elem = lazify(weld_type.elem_type)
+
+    weld_template = _weld_aggregate_by_code
+
+    weld_obj.weld_code = weld_template.format(array=obj_id,
+                                              type=weld_type,
+                                              operation=operation,
+                                              extractor=extractor(lazy_elem))
 
     return weld_obj
 
