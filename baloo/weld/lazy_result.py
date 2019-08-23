@@ -261,7 +261,7 @@ class LazyScalarResult(LazyResult):
         return self.op('>', other, return_type=WeldBit())
 
     def __ge__(self, other):
-        return self.op('<=', other, return_type=WeldBit())
+        return self.op('>=', other, return_type=WeldBit())
 
     def __lt__(self, other):
         return self.op('<', other, return_type=WeldBit())
